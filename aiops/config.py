@@ -91,3 +91,6 @@ FATAL_COUNT_THRESHOLD: int = int(os.getenv("FATAL_COUNT_THRESHOLD", "5"))
 TOP_K_SIMILAR_TICKETS: int = int(os.getenv("TOP_K_SIMILAR_TICKETS", "5"))
 TOP_K_LOG_LINES: int = int(os.getenv("TOP_K_LOG_LINES", "20"))
 TOP_K_CONFLUENCE: int = int(os.getenv("TOP_K_CONFLUENCE", "3"))
+
+# ChromaDB
+CHROMA_PERSIST_DIR: str = os.getenv("CHROMA_PERSIST_DIR", "/tmp/aiops_chroma")

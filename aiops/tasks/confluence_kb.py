@@ -98,7 +98,7 @@ def create_kb_article(self, ticket: dict[str, Any], rca_text: str) -> dict[str, 
         data = resp.json()
         page_id = data.get("id")
         webui = data.get("_links", {}).get("webui", "")
-        page_url = config.CONFLUENCE_BASE_URL + "/wiki" + webui
+        page_url = config.CONFLUENCE_BASE_URL + webui
 
         logger.info("Created Confluence page '%s' (id=%s)", title, page_id)
 

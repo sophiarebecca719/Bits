@@ -115,7 +115,9 @@ def send_rca_notification(
     ticket_key = ticket.get("key", "N/A")
     subject = f"📋 AI Ops RCA Ready — {ticket_key}: {ticket.get('summary', '')[:80]}"
 
-    rca_html = rca_text.replace("\n", "<br>")
+    import html as _html
+
+    rca_html = _html.escape(rca_text).replace("\n", "<br>")
     body = f"""
     <html><body>
     <h2>Root Cause Analysis — {ticket_key}</h2>

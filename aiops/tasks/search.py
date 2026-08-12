@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from aiops.celery_app import app
@@ -16,11 +17,13 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 def _get_chroma_collection():
-    """Return (or lazily create) a ChromaDB collection of historical tickets."""
+    """Return (or lazily create) a persistent ChromaDB collection of historical tickets."""
     try:
         import chromadb
+        from aiops import config as _cfg
 
-        client = chromadb.Client()
+        persist_path = getattr(_cfg, "CHROMA_PERSIST_DIR", "/tmp/aiops_chroma")
+        client = chromadb.PersistentClient(path=persist_path)
         return client.get_or_create_collection("tickets")
     except Exception as exc:
         logger.warning("ChromaDB unavailable: %s", exc)
@@ -119,7 +122,6 @@ def _search_confluence(query: str, top_k: int) -> list[dict[str, Any]]:
                 r.get("body", {}).get("storage", {}).get("value", "")
             )
             # Strip HTML tags for plain-text summary
-            import re
             plain = re.sub(r"<[^>]+>", " ", body_val)[:1000]
             pages.append(
                 {

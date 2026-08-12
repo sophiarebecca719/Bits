@@ -122,6 +122,17 @@ async def datadog_webhook(request: Request) -> JSONResponse:
 
     # Build a synthetic ticket and queue the full RCA pipeline
     if jira_key:
+        # Datadog sends tags as a list of "key:value" strings
+        raw_tags = payload.get("tags", [])
+        tag_dict: dict[str, str] = {}
+        if isinstance(raw_tags, list):
+            for tag in raw_tags:
+                if ":" in tag:
+                    k, v = tag.split(":", 1)
+                    tag_dict[k] = v
+        elif isinstance(raw_tags, dict):
+            tag_dict = raw_tags
+
         ticket: dict[str, Any] = {
             "key": jira_key,
             "summary": f"[Datadog] {payload.get('monitor_name', 'Monitor Alert')}",
@@ -131,8 +142,8 @@ async def datadog_webhook(request: Request) -> JSONResponse:
                 f"(threshold: {payload.get('threshold', 'N/A')})\n"
                 f"Snapshot: {payload.get('snapshot_url', '')}"
             ),
-            "env": payload.get("tags", {}).get("env", "unknown"),
-            "service": payload.get("tags", {}).get("service", "unknown"),
+            "env": tag_dict.get("env", "unknown"),
+            "service": tag_dict.get("service", "unknown"),
             "error_count": 0,
             "fatal_count": 0,
             "timeout_count": 0,
@@ -198,15 +209,15 @@ def _merge_classify(classify_result: dict[str, Any], ticket: dict[str, Any]) -> 
 
 @celery_app.task(name="aiops.main._run_parallel_context")
 def _run_parallel_context(ticket: dict[str, Any]) -> dict[str, Any]:
-    """Run log fetch and search in parallel (synchronously within this task)."""
+    """Run log fetch and search in parallel via Celery workers."""
     from celery import group
 
     job = group(
         fetch_logs.s(ticket),
         search_context.s(ticket),
     )
-    result = job.apply()
-    log_result, search_result = result.get()
+    result = job.apply_async()
+    log_result, search_result = result.get(timeout=120)
     return {**log_result, **search_result}
 
 
